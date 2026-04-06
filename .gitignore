@@ -47,3 +47,10 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Vercel generated files (built during deployment)
+api/vercel.cjs
+api/pino-worker.cjs
+api/pino-file.cjs
+api/pino-pretty.cjs
+api/thread-stream-worker.cjs
