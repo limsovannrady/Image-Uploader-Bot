@@ -1,7 +1,7 @@
 import { TelegramService } from "./telegram.service";
 import { ImageUploadService } from "./image-upload.service";
 import { SubscriptionService } from "./subscription.service";
-import { USE_DB, WELCOME_IMAGE_URL, DEVELOPER_ID, CLEAN_USERNAME } from "./config";
+import { USE_DB, WELCOME_IMAGE_URL, DEVELOPER_ID, DEVELOPER_USERNAME, CLEAN_USERNAME } from "./config";
 import { logger } from "../lib/logger";
 
 interface PhotoSize { file_id: string; width: number; height: number; }
@@ -38,7 +38,7 @@ export const BotController = {
         `<i>Send me an image (as photo or file) to get a shareable link</i>`,
         {
           inline_keyboard: [
-            [{ text: "Developer 🎾", url: `tg://user?id=${DEVELOPER_ID}` }],
+            [{ text: "Developer 🎾", url: `https://t.me/${DEVELOPER_USERNAME}` }],
             [{ text: "Join Channel 📢", url: `https://t.me/${CLEAN_USERNAME}` }],
             [{ text: "Source Code ↗️", url: `https://github.com/Private-Bots-Official/Image-Uploader-Bot` }],
           ],
