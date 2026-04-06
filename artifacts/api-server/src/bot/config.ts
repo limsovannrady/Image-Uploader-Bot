@@ -3,7 +3,7 @@ export const IMGBB_UPLOAD_URL = "https://api-integretion-unblocked.vercel.app/im
 export const CHANNEL_USERNAME = process.env.CHANNEL_USERNAME!;
 export const DEVELOPER_ID = 7855536617;
 export const DEVELOPER_USERNAME = process.env.DEVELOPER_USERNAME || "limsovannrady";
-export const WELCOME_IMAGE_URL = "https://i.imghippo.com/files/GdN9496KmY.jpg";
+export const WELCOME_IMAGE_URL = "https://files.catbox.moe/fqnkkv.jpg";
 
 if (!BOT_TOKEN) throw new Error("Missing required environment variable: BOT_TOKEN");
 if (!CHANNEL_USERNAME) throw new Error("Missing required environment variable: CHANNEL_USERNAME");
