@@ -4,17 +4,20 @@ import * as schema from "./schema";
 
 const { Pool } = pg;
 
-let pool: pg.Pool | null = null;
-let db: ReturnType<typeof drizzle<typeof schema>> | null = null;
-
-if (process.env.DATABASE_URL) {
-  pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  db = drizzle(pool, { schema });
-}
+let _db: ReturnType<typeof drizzle<typeof schema>> | null = null;
 
 function getDb() {
-  if (!db) throw new Error("DATABASE_URL is not set. Database is not available.");
-  return db;
+  if (_db) return _db;
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error("DATABASE_URL is not set");
+  const pool = new Pool({
+    connectionString: url,
+    connectionTimeoutMillis: 3000,
+    idleTimeoutMillis: 5000,
+    max: 1,
+  });
+  _db = drizzle(pool, { schema });
+  return _db;
 }
 
 const dbProxy = new Proxy({} as ReturnType<typeof drizzle<typeof schema>>, {
@@ -23,5 +26,5 @@ const dbProxy = new Proxy({} as ReturnType<typeof drizzle<typeof schema>>, {
   },
 });
 
-export { pool, dbProxy as db };
+export { dbProxy as db };
 export * from "./schema";
