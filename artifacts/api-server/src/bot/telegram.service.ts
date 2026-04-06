@@ -4,6 +4,14 @@ import { logger } from "../lib/logger";
 const API_URL = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
 export const TelegramService = {
+  async sendChatAction(chatId: number, action: string = "typing"): Promise<void> {
+    await fetch(`${API_URL}/sendChatAction`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, action }),
+    });
+  },
+
   async sendMessage(chatId: number, text: string, extra: Record<string, unknown> = {}): Promise<void> {
     const res = await fetch(`${API_URL}/sendMessage`, {
       method: "POST",
@@ -16,17 +24,20 @@ export const TelegramService = {
     }
   },
 
-  async sendPhoto(chatId: number, photo: string, caption: string, replyMarkup?: unknown): Promise<void> {
+  async sendPhoto(chatId: number, photo: string, caption: string, replyMarkup?: unknown, replyToMessageId?: number): Promise<void> {
+    const body: Record<string, unknown> = {
+      chat_id: chatId,
+      photo,
+      caption,
+      parse_mode: "HTML",
+      reply_markup: replyMarkup,
+    };
+    if (replyToMessageId) body.reply_to_message_id = replyToMessageId;
+
     const res = await fetch(`${API_URL}/sendPhoto`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: chatId,
-        photo,
-        caption,
-        parse_mode: "HTML",
-        reply_markup: replyMarkup,
-      }),
+      body: JSON.stringify(body),
     });
     const data = await res.json() as { ok: boolean; description?: string };
     if (!data.ok) {
@@ -34,7 +45,7 @@ export const TelegramService = {
       await fetch(`${API_URL}/sendMessage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: chatId, text: caption, parse_mode: "HTML", reply_markup: replyMarkup }),
+        body: JSON.stringify({ chat_id: chatId, text: caption, parse_mode: "HTML", reply_markup: replyMarkup, reply_to_message_id: replyToMessageId }),
       });
     }
   },

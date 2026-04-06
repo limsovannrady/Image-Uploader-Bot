@@ -11,6 +11,7 @@ interface Video { file_id: string; mime_type?: string; }
 interface Animation { file_id: string; mime_type?: string; }
 interface Update {
   message?: {
+    message_id: number;
     chat: { id: number };
     from: { id: number };
     text?: string;
@@ -28,34 +29,38 @@ export const BotController = {
       return;
     }
 
-    const { chat, from, text, photo, document, video, animation } = update.message;
+    const { message_id, chat, from, text, photo, document, video, animation } = update.message;
     const chatId = chat.id;
     const userId = from.id;
+    const replyTo = message_id;
 
     logger.info({ chatId, userId, text, hasPhoto: !!photo, hasDocument: !!document, hasVideo: !!video }, "Processing message");
 
     if (text === "/start") {
       logger.info({ chatId }, "Handling /start");
+      await TelegramService.sendChatAction(chatId, "typing");
       await TelegramService.sendPhoto(
         chatId,
         WELCOME_IMAGE_URL,
-        `<b>🖍️ Welcome to Media Link Bot!</b>\n\n` +
-        `<i>Send me an image or video to get a shareable link</i>`,
+        `<b>🖍️ សូមស្វាគមន៍មកកាន់ Media Link Bot!</b>\n\n` +
+        `<i>ផ្ញើរូបភាព ឬវីដេអូ ដើម្បីទទួលបានលីងដែលអាចចែករំលែកបាន</i>`,
         {
           inline_keyboard: [
             [{ text: "Developer 🎾", url: `https://t.me/${DEVELOPER_USERNAME}` }],
             [{ text: "Join Channel 📢", url: `https://t.me/${CLEAN_USERNAME}` }],
           ],
-        }
+        },
+        replyTo
       );
       return;
     }
 
     if (text === "/users") {
+      await TelegramService.sendChatAction(chatId, "typing");
       const responseText = USE_DB
-        ? "Database feature not enabled"
-        : "📊 Database not configured";
-      await TelegramService.sendMessage(chatId, responseText);
+        ? "📊 មុខងារមូលដ្ឋានទិន្នន័យមិនទាន់ត្រូវបានបើក"
+        : "📊 មូលដ្ឋានទិន្នន័យមិនទាន់ត្រូវបានកំណត់";
+      await TelegramService.sendMessage(chatId, responseText, { reply_to_message_id: replyTo });
       return;
     }
 
@@ -63,6 +68,8 @@ export const BotController = {
     const isVideo = video || animation || document?.mime_type?.startsWith("video/");
 
     if (isImage || isVideo) {
+      await TelegramService.sendChatAction(chatId, "typing");
+
       logger.info({ chatId, userId }, "Checking subscription");
       const hasAccess = await SubscriptionService.checkSubscription(userId);
       logger.info({ chatId, userId, hasAccess }, "Subscription check result");
@@ -70,10 +77,10 @@ export const BotController = {
       if (!hasAccess) {
         await TelegramService.sendMessage(
           chatId,
-          `<b>🔒 Premium Feature</b>\n\n` +
-          `Join our channel to unlock this feature!\n\n` +
-          `<a href="https://t.me/${CLEAN_USERNAME}">👉 Click here to join</a>`,
-          { disable_web_page_preview: true }
+          `<b>🔒 មុខងារ Premium</b>\n\n` +
+          `សូមចូលរួមបណ្តាញរបស់យើង ដើម្បីដោះសោមុខងារនេះ!\n\n` +
+          `<a href="https://t.me/${CLEAN_USERNAME}">👉 ចុចទីនេះដើម្បីចូលរួម</a>`,
+          { disable_web_page_preview: true, reply_to_message_id: replyTo }
         );
         return;
       }
@@ -95,10 +102,12 @@ export const BotController = {
         mimeType = document!.mime_type || "application/octet-stream";
       }
 
+      await TelegramService.sendChatAction(chatId, isVideo ? "upload_video" : "upload_photo");
+
       logger.info({ fileId, mimeType }, "Fetching file URL");
       const fileUrl = await TelegramService.getFileUrl(fileId);
       if (!fileUrl) {
-        await TelegramService.sendMessage(chatId, "❌ File too large to process (max 20MB)");
+        await TelegramService.sendMessage(chatId, "❌ ឯកសារធំពេក (អតិបរមា 20MB)", { reply_to_message_id: replyTo });
         return;
       }
 
@@ -121,35 +130,42 @@ export const BotController = {
 
       await TelegramService.sendMessage(
         chatId,
-        fileLink || `❌ Failed to upload ${label}`,
+        fileLink
+          ? `✅ ការផ្ទុកឡើងបានជោគជ័យ!\n\n🔗 ${fileLink}`
+          : `❌ ការផ្ទុកឡើង${label === "video" ? "វីដេអូ" : "រូបភាព"}បរាជ័យ`,
         fileLink
           ? {
+              reply_to_message_id: replyTo,
               reply_markup: {
                 inline_keyboard: [
                   [{ text: "Share Link 🔗", url: `tg://msg_url?url=${encodeURIComponent(fileLink)}` }],
                 ],
               },
             }
-          : {}
+          : { reply_to_message_id: replyTo }
       );
       return;
     }
 
     if (document) {
+      await TelegramService.sendChatAction(chatId, "typing");
       await TelegramService.sendMessage(
         chatId,
-        "❌ Unsupported file type. Please send an image or video file."
+        "❌ ប្រភេទឯកសារមិនត្រូវបានគាំទ្រ។ សូមផ្ញើឯកសាររូបភាព ឬវីដេអូ។",
+        { reply_to_message_id: replyTo }
       );
       return;
     }
 
+    await TelegramService.sendChatAction(chatId, "typing");
     await TelegramService.sendMessage(
       chatId,
-      "📸 Send me an image or video to get started!\n\n" +
-      "✨ Features:\n" +
-      "- Convert images & videos to direct links\n" +
-      "- Shareable links\n" +
-      "- Channel membership required"
+      "📸 ផ្ញើរូបភាព ឬវីដេអូ ដើម្បីចាប់ផ្តើម!\n\n" +
+      "✨ មុខងារ:\n" +
+      "- បំប្លែងរូបភាព និងវីដេអូទៅជាលីងផ្ទាល់\n" +
+      "- លីងដែលអាចចែករំលែកបាន\n" +
+      "- ត្រូវការជាសមាជិកបណ្តាញ",
+      { reply_to_message_id: replyTo }
     );
   },
 };

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db, uploadsTable } from "@workspace/db";
 import { count, eq, desc } from "drizzle-orm";
+import { FileUploadService } from "../bot/image-upload.service";
 
 const dashboardRouter = Router();
 
@@ -36,6 +37,31 @@ dashboardRouter.get("/recent", async (req, res) => {
     res.json(uploads);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch recent uploads" });
+  }
+});
+
+dashboardRouter.post("/upload", async (req, res) => {
+  try {
+    const { base64, mimeType } = req.body as { base64?: string; mimeType?: string };
+    if (!base64 || !mimeType) {
+      res.status(400).json({ error: "base64 and mimeType are required" });
+      return;
+    }
+
+    const buffer = Buffer.from(base64, "base64");
+    const fileUrl = await FileUploadService.uploadFile(buffer.buffer as ArrayBuffer, mimeType);
+
+    if (!fileUrl) {
+      res.status(500).json({ error: "Upload failed" });
+      return;
+    }
+
+    const fileType = mimeType.startsWith("video/") ? "video" : "image";
+    await db.insert(uploadsTable).values({ fileUrl, fileType, userId: 0 });
+
+    res.json({ url: fileUrl });
+  } catch (err) {
+    res.status(500).json({ error: "Upload failed" });
   }
 });
 
