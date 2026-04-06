@@ -2,6 +2,7 @@ import { TelegramService } from "./telegram.service";
 import { ImageUploadService } from "./image-upload.service";
 import { SubscriptionService } from "./subscription.service";
 import { USE_DB, WELCOME_IMAGE_URL, DEVELOPER_ID, CLEAN_USERNAME } from "./config";
+import { logger } from "../lib/logger";
 
 interface PhotoSize { file_id: string; width: number; height: number; }
 interface Document { file_id: string; mime_type?: string; }
@@ -17,13 +18,19 @@ interface Update {
 
 export const BotController = {
   async handleUpdate(update: Update): Promise<void> {
-    if (!update.message) return;
+    if (!update.message) {
+      logger.info("Update has no message, skipping");
+      return;
+    }
 
     const { chat, from, text, photo, document } = update.message;
     const chatId = chat.id;
     const userId = from.id;
 
+    logger.info({ chatId, userId, text, hasPhoto: !!photo, hasDocument: !!document }, "Processing message");
+
     if (text === "/start") {
+      logger.info({ chatId }, "Handling /start");
       await TelegramService.sendPhoto(
         chatId,
         WELCOME_IMAGE_URL,
@@ -49,7 +56,10 @@ export const BotController = {
     }
 
     if (photo || document?.mime_type?.startsWith("image/")) {
+      logger.info({ chatId, userId }, "Checking subscription");
       const hasAccess = await SubscriptionService.checkSubscription(userId);
+      logger.info({ chatId, userId, hasAccess }, "Subscription check result");
+
       if (!hasAccess) {
         await TelegramService.sendMessage(
           chatId,
@@ -68,10 +78,14 @@ export const BotController = {
         fileId = document!.file_id;
       }
 
+      logger.info({ fileId }, "Fetching file URL");
       const fileUrl = await TelegramService.getFileUrl(fileId);
+      logger.info({ fileUrl }, "Got file URL, downloading");
       const fileResponse = await fetch(fileUrl);
       const imageBuffer = await fileResponse.arrayBuffer();
+      logger.info("Uploading image to ImgBB");
       const imageUrl = await ImageUploadService.uploadImage(imageBuffer);
+      logger.info({ imageUrl }, "Upload result");
 
       await TelegramService.sendMessage(
         chatId,
