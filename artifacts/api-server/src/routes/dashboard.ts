@@ -1,32 +1,25 @@
 import { Router } from "express";
 import { db, uploadsTable } from "@workspace/db";
 import { count, eq, desc } from "drizzle-orm";
+import { logger } from "../lib/logger";
 import { FileUploadService } from "../bot/image-upload.service";
 
 const dashboardRouter = Router();
 
-const hasDb = !!process.env.DATABASE_URL;
+const DEFAULT_STATS = {
+  totalUploads: 0,
+  imageCount: 0,
+  videoCount: 0,
+  totalUsers: 0,
+  botStatus: "online" as const,
+};
 
-dashboardRouter.get("/stats", async (req, res) => {
-  if (!hasDb) {
-    res.json({
-      totalUploads: 0,
-      imageCount: 0,
-      videoCount: 0,
-      totalUsers: 0,
-      botStatus: "online",
-    });
-    return;
-  }
+dashboardRouter.get("/stats", async (_req, res) => {
   try {
     const [totalResult] = await db.select({ count: count() }).from(uploadsTable);
     const [imageResult] = await db.select({ count: count() }).from(uploadsTable).where(eq(uploadsTable.fileType, "image"));
     const [videoResult] = await db.select({ count: count() }).from(uploadsTable).where(eq(uploadsTable.fileType, "video"));
-
-    const userResult = await db
-      .selectDistinct({ userId: uploadsTable.userId })
-      .from(uploadsTable);
-
+    const userResult = await db.selectDistinct({ userId: uploadsTable.userId }).from(uploadsTable);
     res.json({
       totalUploads: totalResult.count,
       imageCount: imageResult.count,
@@ -34,25 +27,17 @@ dashboardRouter.get("/stats", async (req, res) => {
       totalUsers: userResult.length,
       botStatus: "online",
     });
-  } catch (err) {
-    res.status(500).json({ error: "Failed to fetch stats" });
+  } catch {
+    res.json(DEFAULT_STATS);
   }
 });
 
-dashboardRouter.get("/recent", async (req, res) => {
-  if (!hasDb) {
-    res.json([]);
-    return;
-  }
+dashboardRouter.get("/recent", async (_req, res) => {
   try {
-    const uploads = await db
-      .select()
-      .from(uploadsTable)
-      .orderBy(desc(uploadsTable.createdAt))
-      .limit(20);
+    const uploads = await db.select().from(uploadsTable).orderBy(desc(uploadsTable.createdAt)).limit(20);
     res.json(uploads);
-  } catch (err) {
-    res.status(500).json({ error: "Failed to fetch recent uploads" });
+  } catch {
+    res.json([]);
   }
 });
 
@@ -72,17 +57,16 @@ dashboardRouter.post("/upload", async (req, res) => {
       return;
     }
 
-    if (hasDb) {
+    try {
       const fileType = mimeType.startsWith("video/") ? "video" : "image";
-      try {
-        await db.insert(uploadsTable).values({ fileUrl, fileType, userId: 0 });
-      } catch (err) {
-        // DB save failed but upload succeeded — still return the URL
-      }
+      await db.insert(uploadsTable).values({ fileUrl, fileType, userId: 0 });
+    } catch (err) {
+      logger.error(err, "Failed to save upload to DB (continuing)");
     }
 
     res.json({ url: fileUrl });
   } catch (err) {
+    logger.error(err, "Upload error");
     res.status(500).json({ error: "Upload failed" });
   }
 });
