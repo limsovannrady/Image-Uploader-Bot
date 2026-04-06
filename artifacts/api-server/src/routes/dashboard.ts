@@ -5,7 +5,19 @@ import { FileUploadService } from "../bot/image-upload.service";
 
 const dashboardRouter = Router();
 
+const hasDb = !!process.env.DATABASE_URL;
+
 dashboardRouter.get("/stats", async (req, res) => {
+  if (!hasDb) {
+    res.json({
+      totalUploads: 0,
+      imageCount: 0,
+      videoCount: 0,
+      totalUsers: 0,
+      botStatus: "online",
+    });
+    return;
+  }
   try {
     const [totalResult] = await db.select({ count: count() }).from(uploadsTable);
     const [imageResult] = await db.select({ count: count() }).from(uploadsTable).where(eq(uploadsTable.fileType, "image"));
@@ -28,6 +40,10 @@ dashboardRouter.get("/stats", async (req, res) => {
 });
 
 dashboardRouter.get("/recent", async (req, res) => {
+  if (!hasDb) {
+    res.json([]);
+    return;
+  }
   try {
     const uploads = await db
       .select()
@@ -56,8 +72,14 @@ dashboardRouter.post("/upload", async (req, res) => {
       return;
     }
 
-    const fileType = mimeType.startsWith("video/") ? "video" : "image";
-    await db.insert(uploadsTable).values({ fileUrl, fileType, userId: 0 });
+    if (hasDb) {
+      const fileType = mimeType.startsWith("video/") ? "video" : "image";
+      try {
+        await db.insert(uploadsTable).values({ fileUrl, fileType, userId: 0 });
+      } catch (err) {
+        // DB save failed but upload succeeded — still return the URL
+      }
+    }
 
     res.json({ url: fileUrl });
   } catch (err) {

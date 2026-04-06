@@ -5,7 +5,6 @@ import { logger } from "../lib/logger";
 const botRouter = Router();
 
 botRouter.post("/webhook", async (req, res) => {
-  res.sendStatus(200);
   const update = req.body;
   logger.info({ update }, "Received Telegram update");
   try {
@@ -13,6 +12,7 @@ botRouter.post("/webhook", async (req, res) => {
   } catch (err) {
     logger.error(err, "Bot update handler error");
   }
+  res.sendStatus(200);
 });
 
 export default botRouter;
