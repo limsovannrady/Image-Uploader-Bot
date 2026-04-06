@@ -131,14 +131,14 @@ export const BotController = {
       await TelegramService.sendMessage(
         chatId,
         fileLink
-          ? `✅ ការផ្ទុកឡើងបានជោគជ័យ!\n\n🔗 ${fileLink}`
+          ? `${fileLink}`
           : `❌ ការផ្ទុកឡើង${label === "video" ? "វីដេអូ" : "រូបភាព"}បរាជ័យ`,
         fileLink
           ? {
               reply_to_message_id: replyTo,
               reply_markup: {
                 inline_keyboard: [
-                  [{ text: "Share Link 🔗", url: `tg://msg_url?url=${encodeURIComponent(fileLink)}` }],
+                  [{ text: "Share Link", url: `tg://msg_url?url=${encodeURIComponent(fileLink)}` }],
                 ],
               },
             }
