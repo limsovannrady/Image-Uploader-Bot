@@ -40,7 +40,6 @@ export const BotController = {
           inline_keyboard: [
             [{ text: "Developer 🎾", url: `https://t.me/${DEVELOPER_USERNAME}` }],
             [{ text: "Join Channel 📢", url: `https://t.me/${CLEAN_USERNAME}` }],
-            [{ text: "Source Code ↗️", url: `https://github.com/Private-Bots-Official/Image-Uploader-Bot` }],
           ],
         }
       );
@@ -95,7 +94,6 @@ export const BotController = {
               reply_markup: {
                 inline_keyboard: [
                   [{ text: "Share Link 🔗", url: `tg://msg_url?url=${encodeURIComponent(imageUrl)}` }],
-                  [{ text: "Source Code ↗️", url: `https://github.com/Private-Bots-Official/Image-Uploader-Bot` }],
                 ],
               },
             }
