@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: dashboard
+    description: Dashboard operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Get bot statistics
+      description: Returns total upload counts, user counts, and bot status
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /dashboard/recent:
+    get:
+      operationId: getRecentUploads
+      tags: [dashboard]
+      summary: Get recent uploads
+      description: Returns a list of recently uploaded files
+      responses:
+        "200":
+          description: Recent uploads
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Upload"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +67,44 @@ components:
       required:
         - status
 
+    DashboardStats:
+      type: object
+      properties:
+        totalUploads:
+          type: integer
+        imageCount:
+          type: integer
+        videoCount:
+          type: integer
+        totalUsers:
+          type: integer
+        botStatus:
+          type: string
+      required:
+        - totalUploads
+        - imageCount
+        - videoCount
+        - totalUsers
+        - botStatus
+
+    Upload:
+      type: object
+      properties:
+        id:
+          type: integer
+        fileUrl:
+          type: string
+        fileType:
+          type: string
+          enum: [image, video]
+        userId:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - fileUrl
+        - fileType
+        - userId
+        - createdAt

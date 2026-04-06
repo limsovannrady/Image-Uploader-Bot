@@ -6,4 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./dashboardStats";
 export * from "./healthStatus";
+export * from "./upload";
+export * from "./uploadFileType";

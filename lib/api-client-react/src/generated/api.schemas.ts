@@ -8,3 +8,27 @@
 export interface HealthStatus {
   status: string;
 }
+
+export interface DashboardStats {
+  totalUploads: number;
+  imageCount: number;
+  videoCount: number;
+  totalUsers: number;
+  botStatus: string;
+}
+
+export type UploadFileType =
+  (typeof UploadFileType)[keyof typeof UploadFileType];
+
+export const UploadFileType = {
+  image: "image",
+  video: "video",
+} as const;
+
+export interface Upload {
+  id: number;
+  fileUrl: string;
+  fileType: UploadFileType;
+  userId: number;
+  createdAt: string;
+}

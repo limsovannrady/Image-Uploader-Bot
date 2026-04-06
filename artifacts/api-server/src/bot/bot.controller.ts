@@ -3,6 +3,7 @@ import { FileUploadService } from "./image-upload.service";
 import { SubscriptionService } from "./subscription.service";
 import { USE_DB, WELCOME_IMAGE_URL, DEVELOPER_USERNAME, CLEAN_USERNAME } from "./config";
 import { logger } from "../lib/logger";
+import { db, uploadsTable } from "@workspace/db";
 
 interface PhotoSize { file_id: string; width: number; height: number; }
 interface Document { file_id: string; mime_type?: string; file_name?: string; }
@@ -109,6 +110,14 @@ export const BotController = {
       logger.info(`Uploading ${label} to catbox.moe`);
       const fileLink = await FileUploadService.uploadFile(fileBuffer, mimeType);
       logger.info({ fileLink }, "Upload result");
+
+      if (fileLink) {
+        try {
+          await db.insert(uploadsTable).values({ fileUrl: fileLink, fileType: label, userId });
+        } catch (err) {
+          logger.error(err, "Failed to save upload to DB");
+        }
+      }
 
       await TelegramService.sendMessage(
         chatId,

@@ -14,3 +14,28 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * Returns total upload counts, user counts, and bot status
+ * @summary Get bot statistics
+ */
+export const GetDashboardStatsResponse = zod.object({
+  totalUploads: zod.number(),
+  imageCount: zod.number(),
+  videoCount: zod.number(),
+  totalUsers: zod.number(),
+  botStatus: zod.string(),
+});
+
+/**
+ * Returns a list of recently uploaded files
+ * @summary Get recent uploads
+ */
+export const GetRecentUploadsResponseItem = zod.object({
+  id: zod.number(),
+  fileUrl: zod.string(),
+  fileType: zod.enum(["image", "video"]),
+  userId: zod.number(),
+  createdAt: zod.coerce.date(),
+});
+export const GetRecentUploadsResponse = zod.array(GetRecentUploadsResponseItem);
