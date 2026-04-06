@@ -1,21 +1,31 @@
-import { IMGBB_UPLOAD_URL } from "./config";
+import { logger } from "../lib/logger";
 
 export const ImageUploadService = {
   async uploadImage(imageBuffer: ArrayBuffer): Promise<string> {
-    const base64 = Buffer.from(imageBuffer).toString("base64");
-    const formData = new URLSearchParams();
-    formData.append("image", base64);
+    try {
+      const form = new FormData();
+      form.append("reqtype", "fileupload");
+      form.append("userhash", "");
+      const blob = new Blob([imageBuffer], { type: "image/jpeg" });
+      form.append("fileToUpload", blob, "image.jpg");
 
-    const response = await fetch(IMGBB_UPLOAD_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: formData.toString(),
-    });
+      const response = await fetch("https://catbox.moe/user/api.php", {
+        method: "POST",
+        body: form,
+      });
 
-    const data = await response.json() as { data?: { url?: string }; success?: boolean };
-    if (data.success && data.data?.url) {
-      return data.data.url;
+      const text = await response.text();
+      logger.info({ result: text }, "Image upload result");
+
+      if (text.startsWith("https://")) {
+        return text.trim();
+      }
+
+      logger.error({ result: text }, "Image upload failed");
+      return "";
+    } catch (err) {
+      logger.error(err, "Image upload error");
+      return "";
     }
-    return "";
   },
 };
